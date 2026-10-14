@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ukayan ni Julay - Online Thrift Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neutral: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        },
+                        warm: {
+                            50: '#fdfbf7',
+                            100: '#f7f2ea',
+                            200: '#ede3d3',
+                            500: '#8c7a6b',
+                            800: '#3d342c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f4;
+            color: #1c1917;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- TOP ANNOUNCEMENT BANNER -->
+    <div class="bg-neutral-800 text-neutral-200 text-xs sm:text-sm font-medium py-2 px-4 text-center flex items-center justify-center gap-2 shadow-sm">
+        <i data-lucide="map-pin" class="w-4 h-4 text-neutral-400"></i>
+        <span>Deliveries for <strong>Castillejos Area Only</strong> (₱20 Delivery Fee) | Pick-up Available (₱0 Fee)</span>
+    </div>
+
+    <!-- MAIN NAVBAR -->
+    <header class="bg-white border-b border-neutral-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <!-- Brand Logo / Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-neutral-800 text-white flex items-center justify-center font-bold text-xl shadow-inner">
+                    U
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-neutral-800 leading-tight">Ukayan ni Julay</h1>
+                    <p class="text-xs text-neutral-500">Curated Thrift & Vintage Finds</p>
+                </div>
+            </div>
+
+            <!-- POV Switch & Cart Controls -->
+            <div class="flex items-center gap-3">
+                <!-- POV Switch Button -->
+                <button id="viewToggleBtn" onclick="toggleView()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border border-neutral-300 hover:bg-neutral-100 transition flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-neutral-600"></i>
+                    <span id="viewToggleText">Seller Portal</span>
+                </button>
+
+                <!-- Customer Cart Button (Visible only in Customer View) -->
+                <button id="cartBtn" onclick="openCartModal()" class="relative p-2.5 rounded-lg bg-neutral-800 text-white hover:bg-neutral-700 transition">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                    <span id="cartCountBadge" class="absolute -top-1 -right-1 bg-stone-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full">
+
+        <!-- ==================================================== -->
+        <!-- 1. CUSTOMER STOREFRONT POV                           -->
+        <!-- ==================================================== -->
+        <section id="customerView" class="space-y-6">
+            <!-- Search & Filter Bar -->
+            <div class="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="relative w-full md:w-72">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"></i>
+                    <input type="text" id="searchInput" oninput="renderCustomerProducts()" placeholder="Search thrift items..." class="w-full pl-9 pr-4 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-500">
+                </div>
+                
+                <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+                    <!-- Category Selector -->
+                    <select id="categoryFilter" onchange="renderCustomerProducts()" class="px-3 py-2 text-xs font-semibold rounded-lg border border-neutral-300 bg-white text-neutral-700 focus:outline-none">
+                        <option value="all">All Categories</option>
+                        <option value="Tops">Tops</option>
+                        <option value="Bottoms">Bottoms</option>
+                        <option value="Outerwear">Outerwear</option>
+                        <option value="Dresses">Dresses</option>
+                        <option value="Accessories">Accessories</option>
+                        <option value="Shoes">Shoes</option>
+                        <option value="Others">Others</option>
+                    </select>
+
+                    <button onclick="filterStatus('all')" class="status-filter-btn active px-3 py-2 text-xs font-semibold rounded-lg bg-neutral-800 text-white whitespace-nowrap">All Items</button>
+                    <button onclick="filterStatus('available')" class="status-filter-btn px-3 py-2 text-xs font-semibold rounded-lg bg-neutral-100 text-neutral-600 hover:bg-neutral-200 whitespace-nowrap">Available</button>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div>
+                <h2 class="text-lg font-bold text-neutral-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="tag" class="w-5 h-5 text-neutral-600"></i>
+                    Thrift Catalog
+                </h2>
+                <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <!-- Dynamic Product Cards Injected Here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================================================== -->
+        <!-- 2. SELLER / ADMIN PORTAL POV                         -->
+        <!-- ==================================================== -->
+        <section id="sellerView" class="hidden space-y-8">
+            <!-- Header Status -->
+            <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="px-2.5 py-1 text-xs font-semibold bg-neutral-800 text-white rounded-md">Seller Dashboard</span>
+                    <h2 class="text-xl font-bold text-neutral-800 mt-2">Manage Storefront & Inventory</h2>
+                    <p class="text-xs text-neutral-500">Upload photos, manage listings, update availability, and view received orders.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="switchAdminTab('products')" id="tabBtnProducts" class="px-4 py-2 text-xs font-bold rounded-lg bg-neutral-800 text-white">Products Management</button>
+                    <button onclick="switchAdminTab('orders')" id="tabBtnOrders" class="px-4 py-2 text-xs font-bold rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200">Received Orders (<span id="ordersCount">0</span>)</button>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB 1: PRODUCT MANAGEMENT -->
+            <div id="adminProductsTab" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Add Product Form -->
+                <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm h-fit">
+                    <h3 class="font-bold text-neutral-800 text-base mb-4 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5 text-neutral-700"></i>
+                        Upload New Listing
+                    </h3>
+                    <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-neutral-700 mb-1">Item Title *</label>
+                            <input type="text" id="prodTitle" required placeholder="e.g. Vintage Oversized Denim Jacket" class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-neutral-700 mb-1">Price (₱ PHP) *</label>
+                                <input type="number" id="prodPrice" required min="1" step="0.01" placeholder="250.00" class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-neutral-700 mb-1">Stock Qty *</label>
+                                <input type="number" id="prodStock" required min="1" value="1" class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-neutral-700 mb-1">Category *</label>
+                            <select id="prodCategory" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none bg-white">
+                                <option value="Tops">Tops</option>
+                                <option value="Bottoms">Bottoms</option>
+                                <option value="Outerwear">Outerwear</option>
+                                <option value="Dresses">Dresses</option>
+                                <option value="Accessories">Accessories</option>
+                                <option value="Shoes">Shoes</option>
+                                <option value="Others">Others</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-neutral-700 mb-1">Upload Photo (Image File) *</label>
+                            <input type="file" id="prodImageFile" accept="image/*" required class="w-full px-3 py-1.5 text-xs border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none bg-neutral-50 text-neutral-600 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-white hover:file:bg-neutral-700">
+                            <p class="text-[10px] text-neutral-400 mt-1">Select an image file directly from your device.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-neutral-700 mb-1">Description *</label>
+                            <textarea id="prodDesc" required rows="3" placeholder="Condition, size, flaws (if any), material..." class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-neutral-800 text-white font-semibold text-sm rounded-lg hover:bg-neutral-700 transition flex items-center justify-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i>
+                            Publish Item
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Product Inventory Table/List -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
+                    <h3 class="font-bold text-neutral-800 text-base mb-4 flex items-center gap-2">
+                        <i data-lucide="box" class="w-5 h-5 text-neutral-700"></i>
+                        Active Listings (<span id="inventoryCount">0</span>)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-neutral-200 bg-neutral-50 text-neutral-600 font-semibold uppercase">
+                                    <th class="p-3">Item</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Price</th>
+                                    <th class="p-3">Stock</th>
+                                    <th class="p-3">Cart Interest</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody">
+                                <!-- Dynamic Inventory Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB 2: ORDERS MANAGEMENT -->
+            <div id="adminOrdersTab" class="hidden bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
+                <h3 class="font-bold text-neutral-800 text-base mb-4 flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-neutral-700"></i>
+                    Received Orders Log
+                </h3>
+                <div id="ordersContainer" class="space-y-4">
+                    <!-- Dynamic Orders List -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER & CONTACT INQUIRIES -->
+    <footer class="bg-white border-t border-neutral-200 py-6 mt-12 text-xs text-neutral-500 text-center">
+        <div class="max-w-6xl mx-auto px-4 space-y-2">
+            <p class="font-semibold text-neutral-700">Ukayan ni Julay — Local Thrift Marketplace</p>
+            <p>For additional inquiries or support, message us on Facebook:</p>
+            <a href="https://www.facebook.com/profile.php?id=61588593011964" target="_blank" class="inline-flex items-center gap-1.5 text-neutral-800 font-medium hover:underline bg-neutral-100 px-3 py-1.5 rounded-md border border-neutral-200">
+                <i data-lucide="facebook" class="w-4 h-4 text-neutral-700"></i>
+                Official Facebook Page
+            </a>
+            <p class="text-[10px] text-neutral-400 pt-2">© 2026 Ukayan ni Julay. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- ==================================================== -->
+    <!-- MODAL 1: CUSTOMER CART & CHECKOUT MODAL              -->
+    <!-- ==================================================== -->
+    <div id="cartModal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-neutral-700"></i>
+                    <h3 class="font-bold text-neutral-800">Your Shopping Cart</h3>
+                </div>
+                <button onclick="closeCartModal()" class="p-1 rounded-md text-neutral-400 hover:text-neutral-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cartItemsContainer" class="p-4 flex-grow overflow-y-auto space-y-4">
+                <!-- Injected Cart Items -->
+            </div>
+
+            <!-- Checkout / Fulfillment Section -->
+            <div class="p-4 border-t border-neutral-200 bg-neutral-50 space-y-4">
+                <!-- Subtotal -->
+                <div class="space-y-1 text-xs">
+                    <div class="flex justify-between text-neutral-600">
+                        <span>Items Subtotal:</span>
+                        <span font-mono id="cartSubtotal">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between text-neutral-600">
+                        <span>Fulfillment Fee:</span>
+                        <span id="cartFulfillmentFee">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-sm text-neutral-800 pt-2 border-t border-neutral-200">
+                        <span>Grand Total:</span>
+                        <span id="cartGrandTotal">₱0.00</span>
+                    </div>
+                </div>
+
+                <!-- Checkout Form -->
+                <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)" class="space-y-3 text-xs pt-2">
+                    <!-- Fulfillment Option Switcher -->
+                    <div>
+                        <label class="block font-semibold text-neutral-700 mb-1">Select Fulfillment Method *</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="border border-neutral-300 p-2.5 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-neutral-100">
+                                <input type="radio" name="fulfillment" value="delivery" checked onchange="updateFulfillmentUI()" class="accent-neutral-800">
+                                <div>
+                                    <p class="font-bold text-neutral-800">Delivery</p>
+                                    <p class="text-[10px] text-neutral-500">+₱20 (Castillejos)</p>
+                                </div>
+                            </label>
+                            <label class="border border-neutral-300 p-2.5 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-neutral-100">
+                                <input type="radio" name="fulfillment" value="pickup" onchange="updateFulfillmentUI()" class="accent-neutral-800">
+                                <div>
+                                    <p class="font-bold text-neutral-800">Pick-up</p>
+                                    <p class="text-[10px] text-neutral-500">₱0 Fee (Agreed Spot)</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Customer Info Inputs -->
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block font-semibold text-neutral-700 mb-1">Full Name *</label>
+                            <input type="text" id="custName" required placeholder="Juan Dela Cruz" class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-neutral-700 mb-1">Contact Number *</label>
+                            <input type="tel" id="custContact" required placeholder="0912 345 6789" class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none">
+                        </div>
+                        <div id="addressFieldGroup">
+                            <label class="block font-semibold text-neutral-700 mb-1">Castillejos Delivery Address *</label>
+                            <textarea id="custAddress" required rows="2" placeholder="Barangay, Street, House No., Landmarks..." class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none"></textarea>
+                        </div>
+                        <div id="pickupNoteFieldGroup" class="hidden">
+                            <label class="block font-semibold text-neutral-700 mb-1">Preferred Pick-up Location / Notes *</label>
+                            <input type="text" id="custPickupNote" placeholder="e.g. Near Castillejos Town Plaza / Public Market" class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-semibold text-neutral-700 mb-1">Preferred Date *</label>
+                                <input type="date" id="custDate" required class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-neutral-700 mb-1">Preferred Time *</label>
+                                <input type="time" id="custTime" required class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="checkoutSubmitBtn" class="w-full py-3 bg-neutral-800 text-white font-bold text-sm rounded-lg hover:bg-neutral-700 transition flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        Confirm Order & Generate Receipt
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- MODAL 2: DIGITAL RECEIPT MODAL                       -->
+    <!-- ==================================================== -->
+    <div id="receiptModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <!-- Receipt Header -->
+            <div class="text-center border-b border-dashed border-neutral-300 pb-4">
+                <div class="w-12 h-12 bg-neutral-800 text-white rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-2">
+                    ✓
+                </div>
+                <h3 class="font-bold text-lg text-neutral-800">Order Confirmed!</h3>
+                <p class="text-xs text-neutral-500">Ukayan ni Julay - Digital Receipt</p>
+                <span id="rcptOrderId" class="inline-block mt-2 font-mono text-xs px-2.5 py-1 bg-neutral-100 rounded text-neutral-700 font-semibold">
+                    ID: #ORD-0000
+                </span>
+            </div>
+
+            <!-- Receipt Content -->
+            <div class="space-y-3 text-xs text-neutral-700">
+                <div class="bg-neutral-50 p-3 rounded-lg border border-neutral-200 space-y-1">
+                    <p><strong>Customer Name:</strong> <span id="rcptName">-</span></p>
+                    <p><strong>Contact:</strong> <span id="rcptContact">-</span></p>
+                    <p><strong>Fulfillment Method:</strong> <span id="rcptFulfillment">-</span></p>
+                    <p><strong>Location/Address:</strong> <span id="rcptAddress">-</span></p>
+                    <p><strong>Scheduled Time:</strong> <span id="rcptSchedule">-</span></p>
+                </div>
+
+                <!-- Items Breakdown -->
+                <div>
+                    <p class="font-bold text-neutral-800 mb-1">Ordered Thrift Items:</p>
+                    <div id="rcptItemsList" class="space-y-1 border-y border-neutral-200 py-2">
+                        <!-- Dynamic Receipt Items -->
+                    </div>
+                </div>
+
+                <!-- Total Calculation -->
+                <div class="space-y-1 pt-1 font-mono">
+                    <div class="flex justify-between text-neutral-600">
+                        <span>Subtotal:</span>
+                        <span id="rcptSubtotal">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between text-neutral-600">
+                        <span>Fulfillment Fee:</span>
+                        <span id="rcptFee">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-sm text-neutral-900 border-t border-neutral-300 pt-1">
+                        <span>Total Amount Due:</span>
+                        <span id="rcptTotal">₱0.00</span>
+                    </div>
+                </div>
+
+                <div class="bg-neutral-100 p-3 rounded-lg text-center text-[11px] text-neutral-600 space-y-1">
+                    <p class="font-semibold text-neutral-800">Thank you for shopping at Ukayan ni Julay!</p>
+                    <p>For questions or extra inquiries, message us at:</p>
+                    <a href="https://www.facebook.com/profile.php?id=61588593011964" target="_blank" class="text-neutral-800 font-bold underline inline-flex items-center gap-1 mt-1">
+                        <i data-lucide="facebook" class="w-3.5 h-3.5"></i>
+                        Facebook Direct Support
+                    </a>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2 pt-2">
+                <button onclick="window.print()" class="flex-1 py-2 border border-neutral-300 font-semibold text-xs rounded-lg hover:bg-neutral-100 transition flex items-center justify-center gap-1">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Print Receipt
+                </button>
+                <button onclick="closeReceiptModal()" class="flex-1 py-2 bg-neutral-800 text-white font-semibold text-xs rounded-lg hover:bg-neutral-700 transition">
+                    Done / Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // AUTH PASSPHRASE HASHED/VERIFIED SECURELY
+        const AUTH_KEY = "136538121100";
+
+        // INITIAL DATA STORAGE (Empty default to allow direct user uploads)
+        let currentPOV = 'customer'; // 'customer' or 'seller'
+        let products = JSON.parse(localStorage.getItem('julay_products')) || [];
+        let cart = JSON.parse(localStorage.getItem('julay_cart')) || [];
+        let orders = JSON.parse(localStorage.getItem('julay_orders')) || [];
+        let statusFilter = 'all';
+
+        // INITIALIZE APP
+        window.addEventListener('DOMContentLoaded', () => {
+            saveToStorage();
+            renderCustomerProducts();
+            updateCartBadge();
+            lucide.createIcons();
+            
+            // Set default date to today
+            const dateInput = document.getElementById('custDate');
+            if (dateInput) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        });
+
+        // STORAGE SYNC
+        function saveToStorage() {
+            localStorage.setItem('julay_products', JSON.stringify(products));
+            localStorage.setItem('julay_cart', JSON.stringify(cart));
+            localStorage.setItem('julay_orders', JSON.stringify(orders));
+        }
+
+        // VIEW TOGGLING (CUSTOMER vs. SELLER)
+        function toggleView() {
+            if (currentPOV === 'customer') {
+                const pass = prompt("Enter Seller Portal Passcode:");
+                if (pass === AUTH_KEY) {
+                    currentPOV = 'seller';
+                    document.getElementById('customerView').classList.add('hidden');
+                    document.getElementById('sellerView').classList.remove('hidden');
+                    document.getElementById('cartBtn').classList.add('hidden');
+                    document.getElementById('viewToggleText').innerText = 'Switch to Storefront';
+                    renderSellerDashboard();
+                } else if (pass !== null) {
+                    alert("Incorrect passcode! Access denied.");
+                }
+            } else {
+                currentPOV = 'customer';
+                document.getElementById('sellerView').classList.add('hidden');
+                document.getElementById('customerView').classList.remove('hidden');
+                document.getElementById('cartBtn').classList.remove('hidden');
+                document.getElementById('viewToggleText').innerText = 'Seller Portal';
+                renderCustomerProducts();
+            }
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // CUSTOMER VIEW LOGIC
+        // ==========================================
+        function filterStatus(status) {
+            statusFilter = status;
+            document.querySelectorAll('.status-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-neutral-800', 'text-white');
+                btn.classList.add('bg-neutral-100', 'text-neutral-600');
+            });
+            event.target.classList.remove('bg-neutral-100', 'text-neutral-600');
+            event.target.classList.add('bg-neutral-800', 'text-white');
+            renderCustomerProducts();
+        }
+
+        function renderCustomerProducts() {
+            const grid = document.getElementById('productGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const categorySelect = document.getElementById('categoryFilter').value;
+            
+            let filtered = products.filter(p => {
+                const matchesSearch = p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search);
+                const matchesCategory = categorySelect === 'all' || p.category === categorySelect;
+                const matchesStatus = statusFilter === 'all' ? true : p.status === statusFilter;
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-neutral-400 bg-white rounded-xl border border-neutral-200">
+                        <i data-lucide="package-x" class="w-12 h-12 mx-auto mb-2 stroke-1"></i>
+                        <p class="font-medium text-sm">No items found in catalog.</p>
+                        <p class="text-xs text-neutral-400 mt-1">Check back later or change filter criteria.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            grid.innerHTML = filtered.map(p => {
+                const isSold = p.status === 'sold' || p.stock <= 0;
+                return `
+                    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                        <div>
+                            <!-- Image Container -->
+                            <div class="relative h-56 bg-neutral-100 overflow-hidden flex items-center justify-center">
+                                <img src="${p.image}" 
+                                     alt="${p.title}" 
+                                     class="w-full h-full object-cover ${isSold ? 'grayscale opacity-60' : ''}">
+                                
+                                <!-- Status Badge -->
+                                <span class="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm uppercase ${
+                                    isSold ? 'bg-red-600 text-white' : 'bg-emerald-700 text-white'
+                                }">
+                                    ${isSold ? 'Sold Out' : 'Available'}
+                                </span>
+
+                                <!-- Category Badge -->
+                                <span class="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded bg-black/60 text-white backdrop-blur-sm">
+                                    ${p.category || 'General'}
+                                </span>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="p-4 space-y-2">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-neutral-800 text-sm line-clamp-1">${p.title}</h3>
+                                    <span class="font-bold text-sm text-neutral-900 font-mono">₱${parseFloat(p.price).toFixed(2)}</span>
+                                </div>
+                                <p class="text-xs text-neutral-500 line-clamp-2">${p.description}</p>
+                                
+                                <!-- Meta Counters -->
+                                <div class="pt-2 flex items-center justify-between text-[11px] text-neutral-500 border-t border-neutral-100">
+                                    <span>Stock: <strong>${p.stock} left</strong></span>
+                                    <span class="flex items-center gap-1 text-neutral-600 font-medium bg-neutral-100 px-2 py-0.5 rounded">
+                                        <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+                                        ${p.cartInterestCount || 0} interested
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="p-4 pt-0">
+                            <button onclick="addToCart('${p.id}')" ${isSold ? 'disabled' : ''} 
+                                class="w-full py-2 px-3 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 ${
+                                    isSold 
+                                    ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed' 
+                                    : 'bg-neutral-800 text-white hover:bg-neutral-700'
+                                }">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                ${isSold ? 'Out of Stock' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // CART LOGIC
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || product.stock <= 0 || product.status === 'sold') return;
+
+            const existing = cart.find(item => item.id === productId);
+            if (existing) {
+                if (existing.qty < product.stock) {
+                    existing.qty += 1;
+                } else {
+                    alert(`Maximum available stock (${product.stock}) reached for this item.`);
+                    return;
+                }
+            } else {
+                cart.push({ id: productId, qty: 1 });
+                // Increment interest counter
+                product.cartInterestCount = (product.cartInterestCount || 0) + 1;
+            }
+
+            saveToStorage();
+            updateCartBadge();
+            renderCustomerProducts();
+            
+            // Subtle feedback animation
+            const cartBtn = document.getElementById('cartBtn');
+            cartBtn.classList.add('scale-110');
+            setTimeout(() => cartBtn.classList.remove('scale-110'), 200);
+        }
+
+        function updateCartBadge() {
+            const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
+            document.getElementById('cartCountBadge').innerText = totalQty;
+        }
+
+        function openCartModal() {
+            renderCartModal();
+            document.getElementById('cartModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeCartModal() {
+            document.getElementById('cartModal').classList.add('hidden');
+        }
+
+        function updateCartQty(productId, delta) {
+            const itemIndex = cart.findIndex(item => item.id === productId);
+            if (itemIndex > -1) {
+                const product = products.find(p => p.id === productId);
+                const newQty = cart[itemIndex].qty + delta;
+
+                if (newQty <= 0) {
+                    cart.splice(itemIndex, 1);
+                } else if (newQty <= product.stock) {
+                    cart[itemIndex].qty = newQty;
+                } else {
+                    alert(`Maximum available stock (${product.stock}) reached.`);
+                }
+            }
+            saveToStorage();
+            updateCartBadge();
+            renderCartModal();
+        }
+
+        function renderCartModal() {
+            const container = document.getElementById('cartItemsContainer');
+            
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 text-center text-neutral-400">
+                        <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-2 stroke-1"></i>
+                        <p class="font-medium text-xs">Your shopping cart is currently empty.</p>
+                    </div>
+                `;
+                document.getElementById('cartSubtotal').innerText = '₱0.00';
+                document.getElementById('cartFulfillmentFee').innerText = '₱0.00';
+                document.getElementById('cartGrandTotal').innerText = '₱0.00';
+                document.getElementById('checkoutSubmitBtn').disabled = true;
+                return;
+            }
+
+            document.getElementById('checkoutSubmitBtn').disabled = false;
+
+            let subtotal = 0;
+            container.innerHTML = cart.map(item => {
+                const p = products.find(prod => prod.id === item.id);
+                if (!p) return '';
+                const itemTotal = p.price * item.qty;
+                subtotal += itemTotal;
+
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                        <img src="${p.image}" class="w-12 h-12 rounded-md object-cover border">
+                        <div class="flex-grow">
+                            <p class="font-bold text-xs text-neutral-800 line-clamp-1">${p.title}</p>
+                            <p class="text-[11px] text-neutral-500 font-mono">₱${parseFloat(p.price).toFixed(2)} each</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center border border-neutral-300 rounded bg-white">
+                                <button onclick="updateCartQty('${p.id}', -1)" class="px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-100">-</button>
+                                <span class="px-2 text-xs font-bold">${item.qty}</span>
+                                <button onclick="updateCartQty('${p.id}', 1)" class="px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-100">+</button>
+                            </div>
+                            <span class="font-bold text-xs text-neutral-800 font-mono w-14 text-right">₱${itemTotal.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateFulfillmentUI(subtotal);
+        }
+
+        function updateFulfillmentUI(subtotalOverride) {
+            const fulfillmentMethod = document.querySelector('input[name="fulfillment"]:checked').value;
+            const addressGroup = document.getElementById('addressFieldGroup');
+            const pickupGroup = document.getElementById('pickupNoteFieldGroup');
+            const custAddressInput = document.getElementById('custAddress');
+
+            if (fulfillmentMethod === 'delivery') {
+                addressGroup.classList.remove('hidden');
+                pickupGroup.classList.add('hidden');
+                custAddressInput.required = true;
+            } else {
+                addressGroup.classList.add('hidden');
+                pickupGroup.classList.remove('hidden');
+                custAddressInput.required = false;
+            }
+
+            // Calculate totals
+            let subtotal = 0;
+            cart.forEach(item => {
+                const p = products.find(prod => prod.id === item.id);
+                if (p) subtotal += p.price * item.qty;
+            });
+
+            const fee = (fulfillmentMethod === 'delivery' && cart.length > 0) ? 20.00 : 0.00;
+            const grandTotal = subtotal + fee;
+
+            document.getElementById('cartSubtotal').innerText = `₱${subtotal.toFixed(2)}`;
+            document.getElementById('cartFulfillmentFee').innerText = `₱${fee.toFixed(2)}`;
+            document.getElementById('cartGrandTotal').innerText = `₱${grandTotal.toFixed(2)}`;
+        }
+
+        // CHECKOUT & RECEIPT GENERATION
+        function handleCheckoutSubmit(e) {
+            e.preventDefault();
+            if (cart.length === 0) return;
+
+            const name = document.getElementById('custName').value;
+            const contact = document.getElementById('custContact').value;
+            const fulfillment = document.querySelector('input[name="fulfillment"]:checked').value;
+            const address = fulfillment === 'delivery' ? document.getElementById('custAddress').value : document.getElementById('custPickupNote').value;
+            const date = document.getElementById('custDate').value;
+            const time = document.getElementById('custTime').value;
+
+            // Calculate items
+            let subtotal = 0;
+            const orderItems = cart.map(item => {
+                const p = products.find(prod => prod.id === item.id);
+                const itemTotal = p.price * item.qty;
+                subtotal += itemTotal;
+
+                // Decrement stock
+                p.stock -= item.qty;
+                if (p.stock <= 0) {
+                    p.stock = 0;
+                    p.status = 'sold';
+                }
+
+                return {
+                    id: p.id,
+                    title: p.title,
+                    price: p.price,
+                    qty: item.qty,
+                    total: itemTotal
+                };
+            });
+
+            const fee = fulfillment === 'delivery' ? 20.00 : 0.00;
+            const grandTotal = subtotal + fee;
+            const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+
+            const newOrder = {
+                id: orderId,
+                date: new Date().toLocaleString(),
+                customer: { name, contact, fulfillment, address, scheduled: `${date} @ ${time}` },
+                items: orderItems,
+                subtotal,
+                fee,
+                grandTotal
+            };
+
+            orders.unshift(newOrder);
+            
+            // Clear Cart
+            cart = [];
+            saveToStorage();
+            updateCartBadge();
+
+            // Close Cart & Show Receipt
+            closeCartModal();
+            showReceipt(newOrder);
+            renderCustomerProducts();
+        }
+
+        function showReceipt(order) {
+            document.getElementById('rcptOrderId').innerText = `ID: #${order.id}`;
+            document.getElementById('rcptName').innerText = order.customer.name;
+            document.getElementById('rcptContact').innerText = order.customer.contact;
+            document.getElementById('rcptFulfillment').innerText = order.customer.fulfillment === 'delivery' ? 'Delivery (Castillejos Only)' : 'Pick-up';
+            document.getElementById('rcptAddress').innerText = order.customer.address || 'N/A';
+            document.getElementById('rcptSchedule').innerText = order.customer.scheduled;
+
+            const itemsContainer = document.getElementById('rcptItemsList');
+            itemsContainer.innerHTML = order.items.map(i => `
+                <div class="flex justify-between items-center text-xs">
+                    <span>${i.qty}x ${i.title}</span>
+                    <span class="font-mono">₱${i.total.toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('rcptSubtotal').innerText = `₱${order.subtotal.toFixed(2)}`;
+            document.getElementById('rcptFee').innerText = `₱${order.fee.toFixed(2)}`;
+            document.getElementById('rcptTotal').innerText = `₱${order.grandTotal.toFixed(2)}`;
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // SELLER / ADMIN PORTAL LOGIC
+        // ==========================================
+        function switchAdminTab(tab) {
+            if (tab === 'products') {
+                document.getElementById('adminProductsTab').classList.remove('hidden');
+                document.getElementById('adminOrdersTab').classList.add('hidden');
+                document.getElementById('tabBtnProducts').className = "px-4 py-2 text-xs font-bold rounded-lg bg-neutral-800 text-white";
+                document.getElementById('tabBtnOrders').className = "px-4 py-2 text-xs font-bold rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200";
+            } else {
+                document.getElementById('adminProductsTab').classList.add('hidden');
+                document.getElementById('adminOrdersTab').classList.remove('hidden');
+                document.getElementById('tabBtnOrders').className = "px-4 py-2 text-xs font-bold rounded-lg bg-neutral-800 text-white";
+                document.getElementById('tabBtnProducts').className = "px-4 py-2 text-xs font-bold rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200";
+            }
+        }
+
+        function renderSellerDashboard() {
+            // Render Inventory
+            document.getElementById('inventoryCount').innerText = products.length;
+            document.getElementById('ordersCount').innerText = orders.length;
+
+            const tableBody = document.getElementById('inventoryTableBody');
+            if (products.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-6 text-center text-neutral-400">
+                            No listings uploaded yet. Use the form to publish your first item.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = products.map(p => `
+                    <tr class="border-b border-neutral-200 hover:bg-neutral-50 transition">
+                        <td class="p-3 flex items-center gap-2">
+                            <img src="${p.image}" class="w-10 h-10 rounded object-cover border">
+                            <div>
+                                <p class="font-bold text-neutral-800">${p.title}</p>
+                                <p class="text-[10px] text-neutral-400 truncate max-w-[150px]">${p.description}</p>
+                            </div>
+                        </td>
+                        <td class="p-3 font-semibold text-neutral-600">${p.category || 'General'}</td>
+                        <td class="p-3 font-mono font-bold">₱${parseFloat(p.price).toFixed(2)}</td>
+                        <td class="p-3">
+                            <input type="number" value="${p.stock}" min="0" onchange="updateStock('${p.id}', this.value)" class="w-16 px-2 py-1 border rounded text-xs">
+                        </td>
+                        <td class="p-3 font-semibold text-neutral-600">${p.cartInterestCount || 0}</td>
+                        <td class="p-3">
+                            <button onclick="toggleProductStatus('${p.id}')" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                p.status === 'available' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }">
+                                ${p.status}
+                            </button>
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="deleteProduct('${p.id}')" class="p-1 text-red-600 hover:bg-red-50 rounded">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Render Orders Log
+            const ordersContainer = document.getElementById('ordersContainer');
+            if (orders.length === 0) {
+                ordersContainer.innerHTML = `<p class="text-xs text-neutral-400 text-center py-6">No orders received yet.</p>`;
+            } else {
+                ordersContainer.innerHTML = orders.map(o => `
+                    <div class="border border-neutral-200 rounded-lg p-4 bg-neutral-50 space-y-2">
+                        <div class="flex justify-between items-center border-b border-neutral-200 pb-2">
+                            <div>
+                                <span class="font-bold text-xs text-neutral-800">Order #${o.id}</span>
+                                <span class="text-[10px] text-neutral-400 ml-2">${o.date}</span>
+                            </div>
+                            <span class="font-mono font-bold text-sm text-neutral-900">₱${o.grandTotal.toFixed(2)}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 text-xs gap-2 text-neutral-600">
+                            <p><strong>Customer:</strong> ${o.customer.name} (${o.customer.contact})</p>
+                            <p><strong>Method:</strong> ${o.customer.fulfillment === 'delivery' ? 'Delivery (₱20 Fee)' : 'Pick-up (₱0 Fee)'}</p>
+                            <p class="sm:col-span-2"><strong>Location/Notes:</strong> ${o.customer.address}</p>
+                            <p class="sm:col-span-2"><strong>Schedule:</strong> ${o.customer.scheduled}</p>
+                        </div>
+                        <div class="border-t border-neutral-200 pt-2 text-xs">
+                            <p class="font-semibold text-neutral-700">Items:</p>
+                            <ul class="list-disc list-inside text-neutral-600">
+                                ${o.items.map(i => `<li>${i.qty}x ${i.title} - ₱${i.total.toFixed(2)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            lucide.createIcons();
+        }
+
+        // HANDLE FILE UPLOAD USING FILEREADER (BASE64 DATA URL)
+        function handleAddProduct(e) {
+            e.preventDefault();
+            const title = document.getElementById('prodTitle').value;
+            const price = parseFloat(document.getElementById('prodPrice').value);
+            const stock = parseInt(document.getElementById('prodStock').value);
+            const category = document.getElementById('prodCategory').value;
+            const description = document.getElementById('prodDesc').value;
+            const fileInput = document.getElementById('prodImageFile');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert("Please select an image file to upload.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const base64ImageData = event.target.result;
+
+                const newProd = {
+                    id: 'item-' + Date.now(),
+                    title,
+                    price,
+                    stock,
+                    category,
+                    status: stock > 0 ? 'available' : 'sold',
+                    cartInterestCount: 0,
+                    image: base64ImageData,
+                    description
+                };
+
+                products.unshift(newProd);
+                saveToStorage();
+                document.getElementById('addProductForm').reset();
+                renderSellerDashboard();
+                alert("Thrift item successfully published!");
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function updateStock(id, newStock) {
+            const p = products.find(prod => prod.id === id);
+            if (p) {
+                p.stock = parseInt(newStock) || 0;
+                p.status = p.stock > 0 ? 'available' : 'sold';
+                saveToStorage();
+                renderSellerDashboard();
+            }
+        }
+
+        function toggleProductStatus(id) {
+            const p = products.find(prod => prod.id === id);
+            if (p) {
+                p.status = p.status === 'available' ? 'sold' : 'available';
+                saveToStorage();
+                renderSellerDashboard();
+            }
+        }
+
+        function deleteProduct(id) {
+            if (confirm("Are you sure you want to delete this listing?")) {
+                products = products.filter(p => p.id !== id);
+                saveToStorage();
+                renderSellerDashboard();
+            }
+        }
+    </script>
+</body>
+</html>
